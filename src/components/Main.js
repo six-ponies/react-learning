@@ -1,6 +1,6 @@
 require('normalize.css/normalize.css');
-require('styles/App.css');
-// require('styles/main.sass');
+// require('styles/App.css');
+require('styles/main.less');
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -25,8 +25,11 @@ var ImgFigure = React.createClass({
      * imgFigure的点击处理函数
      */
     handleClick: function(e) {
-
-        this.props.inverse();
+        if (this.props.arrange.isCenter) {
+            this.props.inverse();
+        } else {
+            this.props.center();
+        }
         e.stopPropagation();
         e.preventDefault();
     },
@@ -39,11 +42,14 @@ var ImgFigure = React.createClass({
 
         // 如果图片的旋转角度有值并且不为0， 添加旋转角度
         if (this.props.arrange.rotate) {
-            (['-moz', '-ms-', '-webkit', '']).forEach(function(value) {
-                styleObj[value + 'transform'] = 'rotate(' + this.props.arrange.rotate + 'deg)';
+            (['MozTransform', 'msTransform', 'WebkitTransfrom', 'transform']).forEach(function(value) {
+                styleObj[value] = 'rotate(' + this.props.arrange.rotate + 'deg)';
             }.bind(this));
 
             // styleObj['transform'] = 'rotate(' + this.props.arrange.rotate + 'deg)';
+        }
+        if (this.props.arrange.isCenter) {
+            styleObj.zIndex = 11;
         }
 
         var imgFigureClassName = "img-figure";
@@ -83,6 +89,36 @@ function get30DegRandom() {
     return (Math.random() > 0.5 ? '' : '-') + Math.ceil(Math.random() * 30);
 }
 
+// 控制组件
+var ControllerUnit = React.createClass({
+    handleClick: function(e) {
+        // 如果点击的是当前正在选中态的按钮，则翻转，否则对应的图片居中
+        if (this.props.arrange.isCenter) {
+            this.props.inverse();
+        } else {
+            this.props.center();
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+    },
+    render: function() {
+        var controllerUnitClassName = 'controller-unit';
+
+        // 如果对应的是居中的图片，显示控制按钮的居中态
+        if (this.props.arrange.isCenter) {
+            controllerUnitClassName += ' is-center';
+
+            // 如果同时是翻转态，显示控制按钮的翻转态
+            if (this.props.arrange.isInverse) {
+                controllerUnitClassName += ' is-inverse';
+            }
+        }
+        return (
+            <span className={controllerUnitClassName} onClick={this.handleClick}></span>
+        );
+    }
+})
 var AppComponent = React.createClass({
     Constant: {
         centerPos: {
@@ -141,8 +177,13 @@ var AppComponent = React.createClass({
             imgsArrangeCenterArr = imgsArrangeArr.splice(centerIndex, 1);
 
         // 首先居中 centerIndex 的图片
-        imgsArrangeCenterArr[0].pos = centerPos;
-        imgsArrangeCenterArr[0].rotate = 0;
+        imgsArrangeCenterArr[0] = {
+                pos: centerPos,
+                rotate: 0,
+                isCenter: true
+            }
+            // imgsArrangeCenterArr[0].pos = centerPos;
+            // imgsArrangeCenterArr[0].rotate = 0;
 
         // 取出要布局上侧图片的状态信息
         topImgSpliceIndex = Math.ceil(Math.random() * (imgsArrangeArr.length - topImgNum));
@@ -155,7 +196,8 @@ var AppComponent = React.createClass({
                     top: getRangeRandom(vPosRangeTopY[0], vPosRangeTopY[1]),
                     left: getRangeRandom(vPosRangeX[0], vPosRangeX[1])
                 },
-                rotate: get30DegRandom()
+                rotate: get30DegRandom(),
+                isCenter: false
             }
         })
 
@@ -174,7 +216,8 @@ var AppComponent = React.createClass({
                     top: getRangeRandom(hPosRangeY[0], hPosRangeY[1]),
                     left: getRangeRandom(hPosRangeLORX[0], hPosRangeLORX[1])
                 },
-                rotate: get30DegRandom()
+                rotate: get30DegRandom(),
+                isCenter: false
             }
         }
 
@@ -189,6 +232,18 @@ var AppComponent = React.createClass({
         })
     },
 
+    /*
+     * 利用rearrange函数，居中对应index的图片
+     * @param index，需要被居中的图片对应的图片信息数组的index值
+     * @return {Function}
+     */
+
+    center: function(index) {
+        return function() {
+            this.rearrange(index);
+        }.bind(this);
+
+    },
     getInitialState: function() {
         return {
             imgsArrangeArr: [
@@ -200,6 +255,7 @@ var AppComponent = React.createClass({
                      },
                      rotate: 0, // 旋转角度
                      isInverse: false // 图片正反面
+                     isCenter: false  //图片是否居中
                  }*/
             ]
         };
@@ -256,10 +312,13 @@ var AppComponent = React.createClass({
                         top: 0
                     },
                     rotate: 0,
-                    isInverse: false
+                    isInverse: false,
+                    isCenter: false
                 }
             }
-            imgFigures.push(<ImgFigure data={value} ref={'imgFigure'+ index} arrange={this.state.imgsArrangeArr[index]} inverse={this.inverse(index)}/>);
+            imgFigures.push(<ImgFigure data={value} ref={'imgFigure'+ index} arrange={this.state.imgsArrangeArr[index]} inverse={this.inverse(index)} center={this.center(index)}/>);
+
+            controllerUnits.push(<ControllerUnit arrange={this.state.imgsArrangeArr[index]} inverse={this.inverse(index)} center={this.center(index)}/>);
         }.bind(this))
 
         return (
