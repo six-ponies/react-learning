@@ -8,6 +8,8 @@ let defaultSettings = require('./defaults');
 
 // Add needed plugins here
 let BowerWebpackPlugin = require('bower-webpack-plugin');
+console.log('The __dirname is ' + __dirname);
+console.log(path.join(__dirname, '../src/index'));
 
 let config = Object.assign({}, baseConfig, {
   entry: path.join(__dirname, '../src/index'),
@@ -34,8 +36,7 @@ config.module.loaders.push({
   test: /\.(js|jsx)$/,
   loader: 'babel',
   include: [].concat(
-    config.additionalPaths,
-    [ path.join(__dirname, '/../src') ]
+    config.additionalPaths, [path.join(__dirname, '/../src')]
   )
 });
 
